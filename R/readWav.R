@@ -10,25 +10,37 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   # extract info from header: fileEncoding does not seem to be consistent, so try variants
   header = c()
   Nlines = 16
-  while (length(header) == 0 | length(grep("Scale-3",header)) == 0 |
-         length(grep("Scale-2",header)) == 0 |
-         length(grep("Scale-1",header)) == 0) { # as we do not know what header size is, search for it (needed in R version =< 3.1)
+  
+  while (length(header[,1]) == 0 | length(grep("Scale-3",header[,1])) == 0 |
+         length(grep("Scale-2",header[,1])) == 0 |
+         length(grep("Scale-1",header[,1])) == 0) { # as we do not know what header size is, search for it (needed in R version =< 3.1)
 
-    try(expr = {header = rownames(read.csv(filename, nrow = Nlines, header = TRUE))}, silent = TRUE)
-    if (length(header) == 0) {
-      header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "WINDOWS-1252"))
-    }
-    if (length(header) == 0) {
-      header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "UTF-8"))
-    }
-    if (length(header) == 0) {
-      header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "latin1"))
-    }
+    try(expr = {
+      header = read.csv(filename, nrow = Nlines,  skipNul = TRUE, header = FALSE, fileEncoding = "latin1")
+      rownames(header) <- header[,1]
+      
+      
+      }, silent = TRUE)
+    #if (length(header) == 0) {
+    #  header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "WINDOWS-1252"))
+    #}
+    #if (length(header) == 0) {
+    #  header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "UTF-8"))
+    #}
+    #if (length(header) == 0) {
+    #  header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "latin1"))
+    #}
+    
     Nlines = Nlines - 1
     if (Nlines == 10) print("Error: wav file header not recognized in function g.wavread")
   }
-  scale3position = grep("Scale-3", header)
-  header = header[1:scale3position]
+  
+  if (Nlines<10) {
+    return(0)
+  }
+  
+  scale3position = grep("Scale-3", header[,1])
+  header = header[1:scale3position,1]
   P = sapply(as.character(header),function(x) {
     tmp = unlist(strsplit(x,": "))
     if (length(tmp) == 1) {
