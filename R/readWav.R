@@ -9,7 +9,7 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   #-------------------------------------------------------
   # extract info from header: fileEncoding does not seem to be consistent, so try variants
   header = c()
-  Nlines = 19
+  Nlines = 20
   
   while (length(header[,1]) == 0 | length(grep("Scale-3",header[,1])) == 0 |
          length(grep("Scale-2",header[,1])) == 0 |
