@@ -11,15 +11,24 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   header = c()
   Nlines = 20
   
+  fileEn = "UTF8"
+  
+  if (Sys.info()["sysname"]=="Windows") {
+    fileEn = "WINDOWS-1252"
+  }
+  
+  if (Sys.info()["sysname"]=="Darwin") {
+    fileEn = "latin1"
+  }
+  
+  
   while (length(header[,1]) == 0 | length(grep("Scale-3",header[,1])) == 0 |
          length(grep("Scale-2",header[,1])) == 0 |
          length(grep("Scale-1",header[,1])) == 0) { # as we do not know what header size is, search for it (needed in R version =< 3.1)
 
     try(expr = {
-      header = read.csv(filename, nrow = Nlines,  skipNul = TRUE, header = FALSE, fileEncoding = "latin1")
+      header = read.csv(filename, nrow = Nlines,  skipNul = TRUE, header = FALSE, fileEncoding = fileEn)
       rownames(header) <- header[,1]
-      
-      
       
     #if (length(header) == 1) {
       #header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "WINDOWS-1252"))
