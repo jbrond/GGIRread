@@ -21,12 +21,12 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
       
       
       }, silent = TRUE)
-    #if (length(header) == 0) {
-    #  header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "WINDOWS-1252"))
-    #}
-    #if (length(header) == 0) {
-    #  header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "UTF-8"))
-    #}
+    if (length(header) == 1) {
+      header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "WINDOWS-1252"))
+    }
+    if (length(header) == 1) {
+      header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "UTF-8"))
+    }
     #if (length(header) == 0) {
     #  header = rownames(read.csv(filename, skipNul = TRUE, nrow = Nlines, header = TRUE, fileEncoding = "latin1"))
     #}
