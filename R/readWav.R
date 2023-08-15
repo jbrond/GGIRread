@@ -11,7 +11,7 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   header = c()
   Nlines = 20
   
-  fileEn = "UTF8"
+  fileEn = "latin1"
   
   if (Sys.info()["sysname"]=="Windows") {
     fileEn = "WINDOWS-1252"
