@@ -76,7 +76,10 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   x = (B$C1/range) * scale[1]
   y = (B$C2/range) * scale[2]
   z = (B$C3/range) * scale[3]
-  rawxyz = cbind(x,y,z)
+  
+  temp = B$C4
+  
+  rawxyz = cbind(x,y,z,temp)
   #---------------------------------------------
   # get time (we only need first timestamp
   A = scan(filename, what = "character", nlines = 12, quiet = TRUE)
