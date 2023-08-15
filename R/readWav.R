@@ -77,9 +77,10 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   y = (B$C2/range) * scale[2]
   z = (B$C3/range) * scale[3]
   
-  temp = B$C4
+  Ndata = length(b$C4)
+  temp = (as.numeric(bitwAnd(1023L,B$C4[seq(3,Ndata,H$sample.rate)]))*75000/256-50000)/1000
   
-  rawxyz = cbind(x,y,z,temp)
+  rawxyz = cbind(x,y,z)
   #---------------------------------------------
   # get time (we only need first timestamp
   A = scan(filename, what = "character", nlines = 12, quiet = TRUE)
@@ -90,5 +91,5 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   # Note: temperature information is available in channel 4, but documentation is unclear on how to interpret this information
   # therefore I am not using it and rely on auto-calibration as performed before .wav file is generated
   # g = (B$C4/ range) # temperature, light and battery ?
-  invisible(list(rawxyz = rawxyz, header = P, timestamp = timestamp))
+  invisible(list(rawxyz = rawxyz, header = P, timestamp = timestamp, temp = temp))
 }
