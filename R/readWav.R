@@ -77,7 +77,7 @@ readWav = function(filename, start = 1, end = 100, units = "minutes") {
   y = (B$C2/range) * scale[2]
   z = (B$C3/range) * scale[3]
   
-  Ndata = length(b$C4)
+  Ndata = length(B$C4)
   temp = (as.numeric(bitwAnd(1023L,B$C4[seq(3,Ndata,H$sample.rate)]))*75000/256-50000)/1000
   
   rawxyz = cbind(x,y,z)
