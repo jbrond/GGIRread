@@ -71,40 +71,11 @@ int getSignedIntFromHex(const std::string &hex) {
     return rawVal;
 }
 
-std::string Hex2Bin(const std::string &s){
-  // FROM: https://stackoverflow.com/questions/18310952/convert-strings-between-hex-format-and-binary-format
-  std::string out;
-  for(auto i: s){
-    uint8_t n;
-    if(i <= '9' and i >= '0')
-      n = i - '0';
-    else
-      n = 10 + i - 'A';
-    for(int8_t j = 3; j >= 0; --j) {
-      out.push_back((n & (1<<j))? '1':'0');
-    }
-  }
-  return out;
+int getLight(const std::string &hex) {
+  // input hex base is 16
+  int rawVal = std::stoll(hex, nullptr, 16);
+  return rawVal;
 }
-
-int Bin2Dec(int n) {
-  // FROM: https://www.geeksforgeeks.org/program-binary-decimal-conversion/
-  int num = n;
-  int dec_value = 0;
-  // Initializing base value to 1, i.e 2^0
-  int base = 1;
-  int temp = num;
-  while (temp) {
-    int last_digit = temp % 10;
-    temp = temp / 10;
-    
-    dec_value += last_digit * base;
-    
-    base = base * 2;
-  }
-  return dec_value;
-}
-
 
 // N.B.: don't use 'read' as the C++ function name, it is already used by
 // some include and will not compile:
@@ -141,7 +112,6 @@ Rcpp::List GENEActivReader(std::string filename, std::size_t start = 0, std::siz
         long blockTime = 0;  // Unix millis
         long lastvalue = 0;  // Unix millis
         double temperature = 0.0;
-        double volts = 0.0;
         double freq = 0.0;
         std::string data;
         std::string timeFmtStr = "Page Time:%Y-%m-%d %H:%M:%S:";
@@ -157,19 +127,14 @@ Rcpp::List GENEActivReader(std::string filename, std::size_t start = 0, std::siz
         while (std::getline(input_file, line)) {
             ++blockCount;
             if (blockCount >= start && blockCount <= end) {
+                blockTime = lastvalue;
                 // header: "Recorded Data" (0), serialCode (1), seq num (2),
                 // blockTime (3), unassigned (4), temp (5), batteryVolt (6),
                 // deviceStatus (7), freq (8), data (9)
                 for (int i = 1; i < blockHeaderSize; i++) {
                     try {
                         std::getline(input_file, header);
-                        if (i == 3) {
-                            std::tm tm = {};
-                            std::stringstream ss(header);
-                            int milliseconds;
-                            ss >> milliseconds;
-                            blockTime = lastvalue + milliseconds;
-                        } else if (i == 5) {
+                        if (i == 5) {
                             std::stringstream ss(header);
                             ss.ignore(max_streamsize, ':');
                             ss >> temperature;
@@ -195,12 +160,10 @@ Rcpp::List GENEActivReader(std::string filename, std::size_t start = 0, std::siz
                 int yRaw = 0;
                 int zRaw = 0;
                 int lux = 0;
-                int last12 = 0;
                 double x = 0.0;
                 double y = 0.0;
                 double z = 0.0;
                 double t = 0.0;
-
                 int i = 0;
                 while (hexPosition < data.size() - 1) {
                     try {
@@ -209,16 +172,13 @@ Rcpp::List GENEActivReader(std::string filename, std::size_t start = 0, std::siz
                         yRaw = getSignedIntFromHex(data.substr(hexPosition + 3, 3));
                         zRaw = getSignedIntFromHex(data.substr(hexPosition + 6, 3));
                         // get last 10th and 11th heximal places, and convert to binary
-                        last12 = std::stoi(Hex2Bin(data.substr(hexPosition + 9, 2)));
-                        // split first 10 bit and convert to decimal
-                        lux = Bin2Dec(last12 >> 2);
+                        lux = getLight(data.substr(hexPosition + 9, 3)) / 4;
                         // Update values to calibrated measure (taken from GENEActiv manual)
                         x = (xRaw * 100. - mfrOffset[0]) / mfrGain[0];
                         y = (yRaw * 100. - mfrOffset[1]) / mfrGain[1];
                         z = (zRaw * 100. - mfrOffset[2]) / mfrGain[2];
-
                         t = (double)blockTime + (double)i * (1.0 / freq) * 1000;  // Unix millis
-                        lastvalue = t;
+                        lastvalue = t + (1.0 / freq) * 1000;
                         time_array.push_back(t);
                         x_array.push_back(x);
                         y_array.push_back(y);
@@ -229,7 +189,12 @@ Rcpp::List GENEActivReader(std::string filename, std::size_t start = 0, std::siz
                         i++;
                     } catch (const std::exception& ex) {
                         errCounter++;
-                        Rcpp::Rcerr << "data error at i = %d: %s i: " << i << " " << ex.what() << "\n";
+                        std::string err_text = ex.what();
+
+                        // report any error other than the one expected at the end of file
+                        if (err_text.find("stoll: no conversion") == std::string::npos) {
+                            Rcpp::Rcerr << "data error at i = " << i << " : " << err_text << "\n";
+                        }
                         break;  // rest of this block could be corrupted
                     }
                 }

@@ -12,8 +12,11 @@ readGENEActiv = function(filename, start = 0, end = 0, progress_bar = FALSE,
                   x = fh[grep(pattern = "Lux", x = fh)[1]]))
   Volts = as.numeric(gsub(pattern = "Volts:", replacement = "",
              x = fh[grep(pattern = "Volts", x = fh)[1]]))
-  starttime = gsub(pattern = "Start Time:", replacement = "",
-                  x = fh[grep(pattern = "Start Time", x = fh)[1]])
+  # We use first Page Time and not Start time from the file header
+  # because start time from the file header is known to be incorrect
+  # when battery runs out prior to end of recording
+  starttime = gsub(pattern = "Page Time:", replacement = "",
+                   x = fh[grep(pattern = "Page Time", x = fh)[1]])
   
   tzone = gsub(pattern = "Time Zone:", replacement = "",
                x = fh[grep(pattern = "Time Zone", x = fh)[1]])
@@ -27,10 +30,10 @@ readGENEActiv = function(filename, start = 0, end = 0, progress_bar = FALSE,
   DeviceLocation = gsub(pattern = "Device Location Code:", replacement = "",
             x = fh[grep(pattern = "Device Location Code", x = fh)[1]])
   
-  DeviceModel = gsub(pattern = " ", replacement = "", x = gsub(pattern = "Device Model:", replacement = "",
+  DeviceModel = gsub(pattern = " ", replacement = "",
+                     x = gsub(pattern = "Device Model:", replacement = "",
                         x = fh[grep(pattern = "Device Model", x = fh)[1]]))
-  
-  
+
   # Read acceleration, lux and temperature data
   rawdata = GENEActivReader(filename = filename,
                             start = start, end = end, 
@@ -59,22 +62,26 @@ readGENEActiv = function(filename, start = 0, end = 0, progress_bar = FALSE,
   
   # Establish starttime in the correct timezone
   if (is.null(configtz)) {
-    starttime_posix = as.POSIXlt(x = starttime, tz = desiredtz, format = "%Y-%m-%d %H:%M:%OS", origin = "1970-01-01")
+    starttime_posix = as.POSIXlt(x = starttime, tz = desiredtz,
+                                 format = "%Y-%m-%d %H:%M:%OS", origin = "1970-01-01")
   } else {
-    starttime_posix = as.POSIXlt(starttime, tz = configtz, format = "%Y-%m-%d %H:%M:%OS", origin = "1970-01-01")
-    starttime_posix = as.POSIXlt(as.numeric(starttime_posix), tz = desiredtz, origin = "1970-01-01")
+    starttime_posix = as.POSIXlt(starttime, tz = configtz,
+                                 format = "%Y-%m-%d %H:%M:%OS", origin = "1970-01-01")
   }
   
   # Correct timestamps
-  page_offset = (((start - 1) * 300) / rawdata$info$SampleRate)
-  starttime_num = as.numeric(starttime_posix) + 5 + page_offset #tzone +
+  if (start > 1) {
+    page_offset = (((start - 1) * 300) / rawdata$info$SampleRate)
+  } else {
+    page_offset = 0
+  }
+  starttime_num = as.numeric(starttime_posix) + page_offset
   rawdata$time = rawdata$time + abs(rawdata$time[1]) + starttime_num
-  
   return(invisible(list(
     header = header,
     data.out = data.frame(time = rawdata$time, 
                       x = rawdata$x, y = rawdata$y, z = rawdata$z,
-                      light = rawdata$lux * (Lux/Volts) / 9, # divide by 9 to match GENEAread output values
+                      light = rawdata$lux * (Lux/Volts),
                       temperature = rawdata$temperature,
                       stringsAsFactors = TRUE)
   )))
